@@ -1,0 +1,25 @@
+{
+  "name": "@townland-project/dapp-store-contract",
+  "version": "0.0.1",
+  "description": "Townland dapp store contract",
+  "main": "index.js",
+  "scripts": {
+    "compile": "truffle compile",
+    "test": "truffle test"
+  },
+  "keywords": [
+    "townland",
+    "smart contract",
+    "dapp"
+  ],
+  "author": {
+    "name": "Townland",
+    "url": "https://townland.xyz",
+    "email": "mail@townland.xyz"
+  },
+  "homepage": "https://dapp.townland.xyz",
+  "license": "MIT",
+  "dependencies": {
+    "truffle": "^5.4.26"
+  }
+}
