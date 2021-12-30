@@ -55,6 +55,15 @@ contract TownlandDAppOwnerRule {
         database.Owners[user] = rule;
     }
 
+    function GetOwner(address user) public view returns (Owner memory) {
+        Owner memory owner;
+
+        owner.user = user;
+        owner.rule = database.Owners[user];
+
+        return owner;
+    }
+
     function GetOwners() public view returns (Owner[] memory) {
         Owner[] memory owners = new Owner[](database.OwnersAddress.length);
 
