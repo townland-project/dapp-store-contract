@@ -6,7 +6,7 @@ import {TownlandDAppOwnerRule} from "./rule.sol";
 
 contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
     enum Status {
-        REMOVED, // 0
+        REJECTED, // 0
         WAITING, // 1
         PUBLISHED // 2
     }
@@ -17,6 +17,7 @@ contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
     }
 
     struct DApp {
+        uint index; // dapp index
         string id; // dapp id
         string uri; // dapp manifest.json uri
         Status status; // dapp status
@@ -28,9 +29,9 @@ contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
 
     mapping(uint => App) Apps;
     mapping(bytes => address) IDs;
+    mapping(bytes => uint) Indexs;
 
-    event OnDAppAdded(uint index, string id);
-    event OnDAppStatusChange(uint index, Status status);
+    event OnDAppChange();
     event OnDAppFeeChange(uint fee);
 
     address payable self;
@@ -39,24 +40,25 @@ contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
         self = payable(address(msg.sender));
     }
 
-    function StrLen(string memory str) internal pure returns (uint) {
-        return bytes(str).length;
+    modifier NotZeroIndex(uint index) {
+        require(index != 0, "Index is zero.");
+        _;
     }
 
     modifier VerifyDAppID(string[] memory id) {
         require(id.length == 3, "DApp ID must have 3 part.");
-        require(StrLen(id[0]) == 2 || StrLen(id[0]) == 3, "1st index need 2 or 3 character.");
-        require(StrLen(id[1]) >= 3, "2nd index need more than 3 character.");
-        require(StrLen(id[2]) >= 3, "3rd index need more than 3 character.");
+        require(bytes(id[0]).length == 2 || bytes(id[0]).length == 3, "1st index need 2 or 3 character.");
+        require(bytes(id[1]).length >= 3, "2nd index need more than 3 character.");
+        require(bytes(id[2]).length >= 3, "3rd index need more than 3 character.");
         _;
     }
 
     modifier VerifyDAppByIndex(uint index) {
         App memory app = Apps[index];
 
-        require(IDs[app.id] != address(0), "App not found.");
+        require(IDs[app.id] != address(0), "DApp not found.");
 
-        if(app.status == Status.REMOVED || app.status == Status.WAITING) {
+        if(app.status == Status.REJECTED || app.status == Status.WAITING) {
             revert("DApp has not been published");
         }
 
@@ -71,17 +73,45 @@ contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
         return Index;
     }
 
+    function GetDAppByIndex(uint i) public view NotZeroIndex(i) returns (DApp memory) {
+        string memory id =  string(Apps[i].id);
+
+        return DApp(
+                i,
+                id,
+                GetUriOf(id),
+                Apps[i].status,
+                IDs[Apps[i].id]
+            );   
+    }
+
+    function GetDAppById(string calldata id) public view returns (DApp memory) {
+        require(Indexs[bytes(id)] != 0, "DApp not found.");
+
+        uint i = Indexs[bytes(id)];
+
+        return DApp(
+                i,
+                id,
+                GetUriOf(id),
+                Apps[i].status,
+                IDs[Apps[i].id]
+            );   
+    }
+
     function GetDApps() public view returns (DApp[] memory) {
         DApp[] memory apps = new DApp[](Index);
 
-        for (uint i = 0; i < Index; i++) {
-            string memory id =  string(Apps[i + 1].id);
+        // Index start from 1 but array start from 0
+        for (uint i = 1; i <= Index; i++) {
+            string memory id =  string(Apps[i].id);
             //  array   = map
-            apps[i] = DApp(
+            apps[i - 1] = DApp(
+                i,
                 id,
                 GetUriOf(id),
-                Apps[i+1].status,
-                IDs[Apps[i+1].id]
+                Apps[i].status,
+                IDs[Apps[i].id]
             );
         }
 
@@ -112,33 +142,29 @@ contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
 
         Apps[Index] = app;
         IDs[app.id] = msg.sender;
+        Indexs[app.id] = Index;
 
         _mint(msg.sender, Index, 1, "");
 
-        emit OnDAppAdded(Index, _id);
+        emit OnDAppChange();
 
         return Index;
     }
 
-    function SetDAppStatus(uint index, Status status) public OnlyOwnerWithRule(msg.sender, TownlandDAppOwnerRule.AdminAndRoot) {
+    function SetDAppStatusByIndex(uint index, Status status) public NotZeroIndex(index) OnlyOwnerWithRule(msg.sender, TownlandDAppOwnerRule.Admin) {
         Apps[index].status = status;
 
-        emit OnDAppStatusChange(index, status);
+        emit OnDAppChange();
     }
 
-    function SetFee(uint fee) public OnlyOwnerWithRule(msg.sender, TownlandDAppOwnerRule.AdminAndRoot) {
+    function SetDAppStatusByID(string calldata id, Status status) public {
+        SetDAppStatusByIndex(Indexs[bytes(id)], status);
+    }
+
+    function SetFee(uint fee) public OnlyOwnerWithRule(msg.sender, TownlandDAppOwnerRule.Admin) {
         Fee = fee;
 
         emit OnDAppFeeChange(fee);
-    }
-
-    function GetPaidFee() public view returns (uint) {
-        return self.balance;
-    }
-
-    function GivePaidFee() public OnlyOwnerWithRule(msg.sender, TownlandDAppOwnerRule.AdminAndRoot) {
-        (bool success, ) = msg.sender.call{value: self.balance}("");
-        require(success, "Failed to send fee.");
     }
 
     function GetUriOf(string memory id) internal pure returns (string memory) {
@@ -152,7 +178,7 @@ contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
             );
     }
 
-    function uri(uint index) public view VerifyDAppByIndex(index) override returns (string memory) {
+    function uri(uint index) public view NotZeroIndex(index) VerifyDAppByIndex(index) override returns (string memory) {
         App memory app = Apps[index];
 
         return GetUriOf(string(app.id));

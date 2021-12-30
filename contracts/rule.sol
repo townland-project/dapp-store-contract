@@ -18,10 +18,7 @@ contract TownlandDAppOwnerRule {
         address user;
     }
 
-    event OnOwnerAdded(address user, Rule rule);
-    event OnOwnerChanged(address user, Rule rule);
-
-    Rule[] AdminAndRoot = [Rule.ROOT, Rule.ADMIN];
+    Rule[] Admin = [Rule.ROOT, Rule.ADMIN];
 
     Database database;
 
@@ -40,6 +37,7 @@ contract TownlandDAppOwnerRule {
                 has = true;
             }
         }
+
         if(has) {
             _;
         } else {
@@ -47,25 +45,14 @@ contract TownlandDAppOwnerRule {
         }
     }
 
-    function AddOwner(address user, Rule rule) public OnlyOwnerWithRule(msg.sender, AdminAndRoot) {
+    function AddOwner(address user, Rule rule) public OnlyOwnerWithRule(msg.sender, Admin) {
         require(rule != Rule.ROOT, "Just one root.");
         database.OwnersAddress.push(user);
         SetOwnerRule(user, rule);
-        emit OnOwnerAdded(user, rule);
     }
 
-    function SetOwnerRule(address user, Rule rule) public OnlyOwnerWithRule(msg.sender, AdminAndRoot) {
+    function SetOwnerRule(address user, Rule rule) public OnlyOwnerWithRule(msg.sender, Admin) {
         database.Owners[user] = rule;
-        emit OnOwnerChanged(user, rule);
-    }
-
-    function GetOwner(address user) public view returns (Owner memory) {
-        Owner memory owner;
-
-        owner.user = user;
-        owner.rule = database.Owners[user];
-
-        return owner;
     }
 
     function GetOwners() public view returns (Owner[] memory) {
@@ -80,9 +67,5 @@ contract TownlandDAppOwnerRule {
 
     function IsOwner(address user) public view returns (bool) {
         return database.Owners[user] != Rule.UNDEFINED;
-    }
-
-    function AmIOwner() public view returns (bool) {
-        return IsOwner(msg.sender);
     }
 }
