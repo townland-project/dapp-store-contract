@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
 
-contract TownlandDAppOwnerRule {
+contract TownlandOwnerRule {
     enum Rule {
         UNDEFINED, // 0
         ROOT, // 1

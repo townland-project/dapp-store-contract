@@ -1,129 +1,124 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import {TownlandDAppOwnerRule} from "./rule.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract TownlandDAppStore is ERC1155, TownlandDAppOwnerRule {
-    struct DApp {
-        uint index; // dapp index
-        string id; // dapp id
-        string uri; // dapp manifest.json uri
-        address owner; // dapp owner
-    }
+import {TownlandOwnerRule} from "./rule.sol";
 
-    uint Index = 0; // map index key
-    uint Fee = 10; // price to add a DApp
+struct Config {
+   uint AddFee;
+   uint ChangeFee;
+   string Gateway;
+}
 
-    mapping(uint => bytes) IDs; // index => dapp id
-    mapping(bytes => address) Owners; // dapp id => owner address
-    mapping(bytes => uint) Indexs; // dapp id => index
+struct DApp {
+    uint index;
+    string id;
+    string uri;
+    address owner;
+}
 
-    event OnDAppChange();
-    event OnDAppFeeChange(uint fee);
+contract TownlandDApp is ERC721URIStorage, TownlandOwnerRule {
 
+    // token id counter
+    uint256 TokenID;
+
+    // contract storage
     address payable self;
 
-    constructor() ERC1155("") {
-        self = payable(address(msg.sender));
-    }
+    Config config = Config(10, 5, "cloudflare-ipfs.com");
 
-    modifier ValidIndex(uint index) {
-        require(index != 0, "Index is zero.");
-        require(index <= Index , "Index is not valid.");
-        _;
+    mapping(uint256 => bytes) IDs; // token id => dapp id
+    mapping(bytes => uint256) TokenIDs; // dapp id => token id
+
+    constructor() ERC721("TownlandDApp", "TDAPP") {
+        self = payable(msg.sender);
     }
 
     modifier VerifyDAppID(string[] memory id) {
         require(id.length == 3, "DApp ID must have 3 part.");
-        require(bytes(id[0]).length == 2 || bytes(id[0]).length == 3, "1st index need 2 or 3 character.");
-        require(bytes(id[1]).length >= 3, "2nd index need more than 3 character.");
-        require(bytes(id[2]).length >= 3, "3rd index need more than 3 character.");
+        require(
+            bytes(id[0]).length == 2 || bytes(id[0]).length == 3,
+            "1st index need 2 or 3 character."
+        );
+        require(
+            bytes(id[1]).length >= 3,
+            "2nd index need more than 3 character."
+        );
+        require(
+            bytes(id[2]).length >= 3,
+            "3rd index need more than 3 character."
+        );
         _;
     }
 
-    function GetFee() public view returns (uint) {
-        return Fee;
-    }
+    function GetDApps() public view returns(DApp[] memory) {
+        DApp[] memory dapps = new DApp[](TokenID);
 
-    function GetLastIndex() public view returns (uint) {
-        return Index;
-    }
-
-    function GetDAppByIndex(uint i) public view ValidIndex(i) returns (DApp memory) {
-        return DApp(
+        for(uint i = 1; i <= TokenID; i++) {
+            dapps[i - 1] = DApp(
                 i,
                 string(IDs[i]),
-                GetUriOf(string(IDs[i])),
-                Owners[IDs[i]]
-            );   
-    }
-
-    function GetDApps() public view returns (DApp[] memory) {
-        DApp[] memory apps = new DApp[](Index);
-
-        // Index start from 1 but array start from 0
-        for (uint i = 1; i <= Index; i++) {
-            string memory id =  string(IDs[i]);
-            //  array   = map
-            apps[i - 1] = DApp(
-                i,
-                id,
-                GetUriOf(id),
-                Owners[bytes(id)]
+                tokenURI(i),
+                ownerOf(i)  
             );
         }
 
-        return apps;
+        return dapps;
     }
 
-    function AddDApp(string[] calldata id) public payable VerifyDAppID(id) returns (uint256) {
-        bytes memory _id = bytes(
-            string(
-                abi.encodePacked(id[0], ".", id[1], ".", id[2])
-            )
-        );
-
-        require(Owners[_id] == address(0), "App ID registered.");
-
-        if(GetOwner(msg.sender).rule == TownlandDAppOwnerRule.Rule.UNDEFINED) {
-            require(msg.value == Fee, "Need coin for publish your app.");
+    function pay(uint price) private {
+        if (GetOwner(msg.sender).rule == TownlandOwnerRule.Rule.UNDEFINED) {
+            require(msg.value == price, "Need coin for publish your app.");
 
             (bool success, ) = self.call{value: msg.value}("");
             require(success, "Failed to send coin.");
         }
-
-        Index = Index + 1;
-
-        IDs[Index] = _id;
-        Owners[_id] = msg.sender;
-        Indexs[_id] = Index;
-
-        _mint(msg.sender, Index, 1, "");
-
-        emit OnDAppChange();
-
-        return Index;
     }
 
-    function SetFee(uint fee) public OnlyOwnerWithRule(msg.sender, TownlandDAppOwnerRule.Admin) {
-        Fee = fee;
-
-        emit OnDAppFeeChange(fee);
+    function ipfs(string memory cid) public view returns(string memory) {
+        return string(
+            abi.encodePacked(
+                "https://", config.Gateway, "/ipfs/", cid, "/manifest.json"
+            )
+        );
     }
 
-    function GetUriOf(string memory id) internal pure returns (string memory) {
-        return
-            string(
-                abi.encodePacked(
-                    "https://dapp.townland.xyz/id/",
-                    id,
-                    "/manifest.json"
-                )
-            );
+    function Mint(string[] calldata id, string calldata cid)
+        public
+        payable
+        VerifyDAppID(id)
+    {
+        bytes memory DAppID = bytes(
+            string(abi.encodePacked(id[0], ".", id[1], ".", id[2]))
+        );
+
+        require(TokenIDs[DAppID] == 0, "DApp id registered.");
+
+        pay(config.AddFee);
+
+        TokenID = TokenID + 1;
+
+        IDs[TokenID] = DAppID;
+        TokenIDs[DAppID] = TokenID;
+
+        _mint(msg.sender, TokenID); // sender is owner of this token id
+        _setTokenURI(TokenID, ipfs(cid));
     }
 
-    function uri(uint index) public view ValidIndex(index) override returns (string memory) {
-        return GetUriOf(string(IDs[index]));
+    function Update(string calldata id, string calldata cid) public payable {
+        bytes memory DAppID = bytes(id);
+        uint256 _TokenID = TokenIDs[DAppID];
+        require(ownerOf(_TokenID) == msg.sender, "DApp id did not register.");
+        pay(config.ChangeFee);
+        _setTokenURI(_TokenID, ipfs(cid));
+    }
+
+    function SetConfig(uint add, uint change, string calldata gateway) public OnlyOwnerWithRule(msg.sender, TownlandOwnerRule.Admin) {
+        config = Config(add, change, gateway);
+    }
+
+    function GetConfig() public view returns (Config memory) {
+        return config;
     }
 }
