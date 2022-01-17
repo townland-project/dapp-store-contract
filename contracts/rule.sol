@@ -27,7 +27,9 @@ contract TownlandOwnerRule {
         database.Owners[msg.sender] = Rule.ROOT;
     }
 
-    modifier OnlyOwnerWithRule(address user, Rule[] memory rules) {
+    modifier OnlyOwnerWithRule(Rule[] memory rules) {
+        address user = address(msg.sender);
+
         require(database.Owners[user] != Rule.UNDEFINED, "Who are you ?");
 
         bool has = false;
@@ -45,13 +47,13 @@ contract TownlandOwnerRule {
         }
     }
 
-    function AddOwner(address user, Rule rule) public OnlyOwnerWithRule(msg.sender, Admin) {
+    function AddOwner(address user, Rule rule) public OnlyOwnerWithRule(Admin) {
         require(rule != Rule.ROOT, "Just one root.");
         database.OwnersAddress.push(user);
         SetOwnerRule(user, rule);
     }
 
-    function SetOwnerRule(address user, Rule rule) public OnlyOwnerWithRule(msg.sender, Admin) {
+    function SetOwnerRule(address user, Rule rule) public OnlyOwnerWithRule(Admin) {
         database.Owners[user] = rule;
     }
 

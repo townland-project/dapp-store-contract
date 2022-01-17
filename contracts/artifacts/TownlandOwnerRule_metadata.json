@@ -1,0 +1,162 @@
+{
+	"compiler": {
+		"version": "0.8.7+commit.e28d00a7"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"internalType": "enum TownlandOwnerRule.Rule",
+						"name": "rule",
+						"type": "uint8"
+					}
+				],
+				"name": "AddOwner",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "GetOwner",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "enum TownlandOwnerRule.Rule",
+								"name": "rule",
+								"type": "uint8"
+							},
+							{
+								"internalType": "address",
+								"name": "user",
+								"type": "address"
+							}
+						],
+						"internalType": "struct TownlandOwnerRule.Owner",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "GetOwners",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "enum TownlandOwnerRule.Rule",
+								"name": "rule",
+								"type": "uint8"
+							},
+							{
+								"internalType": "address",
+								"name": "user",
+								"type": "address"
+							}
+						],
+						"internalType": "struct TownlandOwnerRule.Owner[]",
+						"name": "",
+						"type": "tuple[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "IsOwner",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"internalType": "enum TownlandOwnerRule.Rule",
+						"name": "rule",
+						"type": "uint8"
+					}
+				],
+				"name": "SetOwnerRule",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/rule.sol": "TownlandOwnerRule"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"contracts/rule.sol": {
+			"keccak256": "0x2f3160e2e44abfcd8345afad5787f19e6890fb52e01d1e9a499c84bd7d94e460",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://cd34b11f3a8e2584ea776d500c426bcf16d063697f2872d684545ea313732e78",
+				"dweb:/ipfs/QmNhWhVavgBbUBRdFQDeNXCnhX4bD2tPRByZXuDLusc2Mu"
+			]
+		}
+	},
+	"version": 1
+}

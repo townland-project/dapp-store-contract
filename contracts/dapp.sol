@@ -23,7 +23,6 @@ contract TownlandDApp is ERC721URIStorage, TownlandOwnerRule {
     // token id counter
     uint256 TokenID;
 
-    // contract storage
     address payable self;
 
     Config config = Config(10, 5, "cloudflare-ipfs.com");
@@ -33,6 +32,10 @@ contract TownlandDApp is ERC721URIStorage, TownlandOwnerRule {
 
     constructor() ERC721("TownlandDApp", "TDAPP") {
         self = payable(msg.sender);
+    }
+
+    function GetSelf() public view returns (address) {
+        return self;
     }
 
     modifier VerifyDAppID(string[] memory id) {
@@ -67,12 +70,12 @@ contract TownlandDApp is ERC721URIStorage, TownlandOwnerRule {
         return dapps;
     }
 
-    function pay(uint price) private {
+    function pay(uint price) internal {
         if (GetOwner(msg.sender).rule == TownlandOwnerRule.Rule.UNDEFINED) {
-            require(msg.value == price, "Need coin for publish your app.");
+            require(msg.value == price, "Need coin for your DApp.");
 
-            (bool success, ) = self.call{value: msg.value}("");
-            require(success, "Failed to send coin.");
+            (bool success,) = self.call{value: msg.value}("");
+            require(success, "Failed sender coin.");
         }
     }
 
@@ -114,11 +117,16 @@ contract TownlandDApp is ERC721URIStorage, TownlandOwnerRule {
         _setTokenURI(_TokenID, ipfs(cid));
     }
 
-    function SetConfig(uint add, uint change, string calldata gateway) public OnlyOwnerWithRule(msg.sender, TownlandOwnerRule.Admin) {
+    function SetConfig(uint add, uint change, string calldata gateway) public OnlyOwnerWithRule(TownlandOwnerRule.Admin) {
         config = Config(add, change, gateway);
     }
 
     function GetConfig() public view returns (Config memory) {
         return config;
+    }
+
+    function PayBalance() public OnlyOwnerWithRule(TownlandOwnerRule.Admin) {
+        (bool success, ) = msg.sender.call{value: self.balance}("");
+        require(success, "Failed to send coin.");
     }
 }
